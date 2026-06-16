@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<!--
+  电子祭奠「记住我」· v1.0.5 · 响应式（纯净版·可部署）
+  2026-06-15 周一 北京时间 (CST) · Claude Opus 4.8 + Codex GPT-5
+  形态：打开 ->（自动你母语）整张黑白遗照挂屏幕上，像真照片。整屏只【右下角一小块】可点(无任何可见样式)，按下浮现一抹玻璃光显示可点范围，松开淡灭无残留 -> 进设置(换照片/切语言)。其他任何地方点了都没反应。
+  单文件 · 无依赖 · 离线 · 7 语言 · 阿语 RTL · 照片只在本地不上传。纯净版无内嵌照·可部署。
+-->
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0a09">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="记住我">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22%E8%AE%B0%E4%BD%8F%E6%88%91%20%C2%B7%20Remember%20Me%22%2C%20%22short_name%22%3A%20%22%E8%AE%B0%E4%BD%8F%E6%88%91%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22orientation%22%3A%20%22any%22%2C%20%22background_color%22%3A%20%22%230b0a09%22%2C%20%22theme_color%22%3A%20%22%230b0a09%22%2C%20%22start_url%22%3A%20%22.%22%7D">
+<title>记住我</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230b0a09'/%3E%3Ccircle cx='16' cy='13' r='6' fill='%23b9923f'/%3E%3Cpath d='M6 30c0-6 4-10 10-10s10 4 10 10' fill='%23b9923f'/%3E%3C/svg%3E">
+<script>
+  (function(){ try{ var s=null; try{s=localStorage.getItem('jzw_lang');}catch(e){}
+    var l=(s||navigator.language||'').toLowerCase();
+    document.documentElement.dir = (l.indexOf('ar')===0) ? 'rtl' : 'ltr';
+    if(s||navigator.language) document.documentElement.lang = s||navigator.language;
+  }catch(e){} })();
+</script>
+<style>
+  :root{ --bg:#0b0a09; --warm:#b9923f; --text:#e9e2d4; --dim:#8a8072; --hot:100px;
+    --serif:"Songti SC","STSong","SimSun","Noto Naskh Arabic",Georgia,"Times New Roman",serif; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{ width:100%; height:100%; overscroll-behavior:none; }
+  body{ font-family:var(--serif); color:var(--text); background:var(--bg); overflow:hidden;
+    display:flex; align-items:center; justify-content:center; -webkit-font-smoothing:antialiased; cursor:default; }
+  html[dir=rtl] .lead, html[dir=rtl] .upload-btn, html[dir=rtl] .sheet-item,
+  html[dir=rtl] .lang-opt, html[dir=rtl] .hint, html[dir=rtl] .toast{ letter-spacing:normal; }
+
+  .wall{ position:fixed; inset:0; z-index:0; background:radial-gradient(75% 60% at 50% 42%, #1a160f 0%, #0d0b08 55%, #060504 100%); }
+
+  .start{ position:relative; z-index:2; text-align:center; opacity:0; animation:fade 1.6s ease .3s forwards; }
+  .start .lead{ color:var(--dim); font-size:15px; letter-spacing:.35em; margin-bottom:34px; }
+  .upload-btn{ display:inline-block; padding:14px 40px; border:1px solid #4a4031; border-radius:30px;
+    color:var(--text); font-family:var(--serif); font-size:17px; letter-spacing:.22em; cursor:pointer; transition:.4s; background:transparent; }
+  .upload-btn:hover{ border-color:var(--warm); color:var(--warm); }
+  .sample{ display:block; margin-top:22px; color:#5f5747; font-size:13px; letter-spacing:.16em; cursor:pointer; transition:.3s; text-decoration:none; }
+  .sample:hover{ color:var(--dim); }
+  @keyframes fade{to{opacity:1}}
+
+  /* 看照片：整屏无可点反应（像真照片） */
+  .stage{ position:fixed; inset:0; z-index:1; display:none; align-items:center; justify-content:center;
+    cursor:default; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+  .stage.show{ display:flex; }
+  .stage img{ object-fit:contain; filter:grayscale(1) contrast(1.04) brightness(.98);
+    box-shadow:0 30px 90px -30px rgba(0,0,0,.9); opacity:0; transform:scale(.985);
+    animation:reveal 1.6s cubic-bezier(.2,.7,.2,1) forwards; pointer-events:none;
+    -webkit-touch-callout:none; -webkit-user-select:none; }
+  @keyframes reveal{to{opacity:1; transform:scale(1)}}
+  .stage::after{ content:""; position:fixed; inset:0; pointer-events:none; box-shadow:0 0 220px 60px rgba(0,0,0,.55) inset; }
+
+  /* ★ 唯一可点区：右下角一小块，无任何可见样式；按下才浮现一抹玻璃光(从亮到暗灭,无残留) */
+  .hot{ position:fixed; right:0; bottom:0; width:var(--hot); height:var(--hot); z-index:5;
+    border:none; background:transparent; cursor:pointer; padding:0; touch-action:manipulation;
+    user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; }
+  .hot::before{ content:""; position:absolute; right:calc(var(--hot) * -0.35); bottom:calc(var(--hot) * -0.35);
+    width:calc(var(--hot) * 1.7); height:calc(var(--hot) * 1.7); border-radius:50%;
+    background:radial-gradient(circle at 100% 100%, rgba(255,251,240,.55) 0%, rgba(214,178,92,.30) 35%, rgba(185,146,63,.12) 56%, transparent 72%);
+    opacity:0; transition:opacity 1.5s ease; pointer-events:none; }
+  .hot.press::before{ opacity:1; transition:opacity .1s ease; }   /* 按下亮起 → 移除class后 1.5s 柔缓渐灭 */
+  html[dir=rtl] .hot{ left:0; right:auto; }
+  html[dir=rtl] .hot::before{ left:calc(var(--hot) * -0.35); right:auto;
+    background:radial-gradient(circle at 0% 100%, rgba(255,251,240,.55) 0%, rgba(214,178,92,.30) 35%, rgba(185,146,63,.12) 56%, transparent 72%); }
+
+  /* 首次提示：常驻不自动消失（直到用户交互）·低位不挡脸 */
+  .hint{ position:fixed; left:50%; bottom:6.5%; transform:translateX(-50%); z-index:6; color:var(--dim); font-size:13px;
+    letter-spacing:.06em; background:rgba(10,9,8,.62); padding:9px 18px; border-radius:22px; opacity:0; pointer-events:none;
+    transition:opacity 1s; max-width:82vw; text-align:center; }
+  .hint.show{ opacity:.9; }
+
+  .loading{ position:fixed; inset:0; z-index:7; display:none; align-items:center; justify-content:center; background:rgba(11,10,9,.6); }
+  .loading.show{ display:flex; }
+  .loading i{ width:8px; height:8px; margin:0 5px; border-radius:50%; background:var(--warm); opacity:.3; animation:pulse 1.2s infinite; display:inline-block; }
+  .loading i:nth-child(2){ animation-delay:.2s } .loading i:nth-child(3){ animation-delay:.4s }
+  @keyframes pulse{ 0%,100%{opacity:.25;transform:scale(.8)} 50%{opacity:.9;transform:scale(1)} }
+
+  .toast{ position:fixed; left:50%; bottom:11%; transform:translateX(-50%); z-index:10; color:var(--text); font-size:14px;
+    background:rgba(20,16,11,.93); border:1px solid #2e2616; padding:11px 20px; border-radius:24px; opacity:0; pointer-events:none;
+    transition:opacity .4s; max-width:84vw; text-align:center; }
+  .toast.show{ opacity:1; }
+
+  /* 设置面板：庄重竖排列表(非扇形,不轻浮)·底部抽屉不挡脸·只在点关闭/遮罩时收(不自动消失) */
+  .mask{ position:fixed; inset:0; z-index:8; background:rgba(0,0,0,.55); opacity:0; pointer-events:none; transition:.3s; }
+  .mask.show{ opacity:1; pointer-events:auto; }
+  .sheet{ position:fixed; left:50%; bottom:0; transform:translate(-50%,110%); z-index:9; width:min(420px,100%);
+    background:#15110c; border:1px solid #2e2616; border-bottom:none; border-radius:16px 16px 0 0;
+    padding:8px 0 calc(10px + env(safe-area-inset-bottom)); transition:transform .34s cubic-bezier(.2,.7,.2,1); }
+  .sheet.show{ transform:translate(-50%,0); }
+  .sheet-item{ display:block; width:100%; background:transparent; border:none; color:var(--text); font-family:var(--serif);
+    font-size:17px; letter-spacing:.08em; padding:16px; text-align:center; cursor:pointer; border-top:1px solid #221b10; }
+  .sheet-item:first-child{ border-top:none; }
+  .sheet-item:hover{ color:var(--warm); }
+  .sheet-item.close{ color:var(--dim); }
+  .lang-list{ display:none; padding:4px 0 8px; background:#100c08; }
+  .lang-list.show{ display:block; }
+  .lang-opt{ display:block; width:100%; background:transparent; border:none; color:var(--dim); font-family:var(--serif);
+    font-size:16px; padding:12px; text-align:center; cursor:pointer; }
+  .lang-opt:hover{ color:var(--text); }
+  .lang-opt.active{ color:var(--warm); }
+
+  input[type=file]{display:none}
+  /* === 平台适配 === */
+  @media (pointer:coarse){ :root{ --hot:110px; } }
+  @media (pointer:fine){ :root{ --hot:96px; } }
+  body{ height:100vh; height:100dvh; padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom); }
+  .upload-btn{ padding:16px 46px; font-size:18px; min-height:54px; }
+  .start .lead{ font-size:14px; }
+  .stage img{ max-width:94vw; max-height:90vh; max-height:90dvh; }
+  @media (min-width:760px){ .start .lead{ font-size:15px; } .upload-btn{ font-size:17px; }
+    .stage img{ max-width:92vw; max-height:92vh; max-height:92dvh; } }
+
+</style>
+</head>
+<body>
+  <div class="wall"></div>
+
+  <div class="start" id="start">
+    <div class="lead" data-i18n="lead"></div>
+    <button class="upload-btn" id="uploadBtn" data-i18n="upload_photo"></button>
+    
+  </div>
+
+  <div class="stage" id="stage"><img id="img" alt=""></div>
+
+  <button class="hot" id="hot" aria-label="settings"></button>
+  <div class="hint" id="hint" data-i18n="hint"></div>
+  <div class="loading" id="loading"><i></i><i></i><i></i></div>
+  <div class="toast" id="toast"></div>
+
+  <div class="mask" id="mask"></div>
+  <div class="sheet" id="sheet">
+    <button class="sheet-item" id="sChange" data-i18n="change_photo"></button>
+    <button class="sheet-item" id="sLang" data-i18n="language_label"></button>
+    <div class="lang-list" id="langList"></div>
+    <button class="sheet-item close" id="sClose" data-i18n="close_label"></button>
+  </div>
+
+  <input type="file" id="file" accept="image/*">
+
+<script>
+  var I18N = {"zh-CN": {"lead": "愿　长　相　记", "upload_photo": "上传一张照片", "preview_sample": "— 用示例预览 —", "change_photo": "换一张照片", "language_label": "语言", "close_label": "关闭", "hint": "轻触屏幕一角　可换照片 / 换语言", "too_large": "图片太大，请换小一点的", "not_saved": "存储空间有限，照片仅本次有效", "cant_open": "这张照片无法打开", "rtl": false}, "zh-TW": {"lead": "願　長　相　記", "upload_photo": "上傳一張照片", "preview_sample": "— 用範例預覽 —", "change_photo": "換一張照片", "language_label": "語言", "close_label": "關閉", "hint": "輕觸螢幕一角　可換照片 / 換語言", "too_large": "圖片太大，請換小一點的", "not_saved": "儲存空間有限，照片僅本次有效", "cant_open": "這張照片無法開啟", "rtl": false}, "en-US": {"lead": "In loving memory", "upload_photo": "Upload a photo", "preview_sample": "— Preview sample —", "change_photo": "Change photo", "language_label": "Language", "close_label": "Close", "hint": "Tap a corner of the screen to change photo or language", "too_large": "This photo is too large", "not_saved": "Storage is limited — saved for this session only", "cant_open": "This photo can’t be opened", "rtl": false}, "en-GB": {"lead": "In loving memory", "upload_photo": "Upload a photo", "preview_sample": "— Preview sample —", "change_photo": "Change photo", "language_label": "Language", "close_label": "Close", "hint": "Tap a corner of the screen to change photo or language", "too_large": "This photo is too large", "not_saved": "Storage is limited — saved for this session only", "cant_open": "This photo can’t be opened", "rtl": false}, "ru": {"lead": "Вечная память", "upload_photo": "Загрузить фотографию", "preview_sample": "— Посмотреть пример —", "change_photo": "Заменить фотографию", "language_label": "Язык", "close_label": "Закрыть", "hint": "Коснитесь угла экрана, чтобы изменить фото или язык", "too_large": "Фото слишком большое", "not_saved": "Мало места — сохранено только на этот раз", "cant_open": "Не удалось открыть фото", "rtl": false}, "uk": {"lead": "Вічна пам’ять", "upload_photo": "Завантажити фото", "preview_sample": "— Переглянути приклад —", "change_photo": "Змінити фото", "language_label": "Мова", "close_label": "Закрити", "hint": "Торкніться кута екрана, щоб змінити фото або мову", "too_large": "Фото завелике", "not_saved": "Мало місця — збережено лише цього разу", "cant_open": "Не вдалося відкрити фото", "rtl": false}, "ar": {"lead": "في ذِكرى طيِّبة", "upload_photo": "حَمِّل صورة", "preview_sample": "— معاينة بنموذج —", "change_photo": "غَيِّر الصورة", "language_label": "اللغة", "close_label": "إغلاق", "hint": "انقر زاوية الشاشة لتغيير الصورة أو اللغة", "too_large": "الصورة كبيرة جدًا", "not_saved": "المساحة محدودة — تم الحفظ لهذه المرة فقط", "cant_open": "تعذّر فتح الصورة", "rtl": true}};
+  var LANG_NAMES = [["zh-CN", "简体中文"], ["zh-TW", "繁體中文"], ["en-US", "English (US)"], ["en-GB", "English (UK)"], ["ru", "Русский"], ["uk", "Українська"], ["ar", "العربية"]];
+  var SAMPLE = "";
+  var $ = function(id){ return document.getElementById(id); };
+  var start=$('start'), stage=$('stage'), img=$('img'), file=$('file'), hot=$('hot'),
+      hint=$('hint'), loading=$('loading'), toastEl=$('toast'), mask=$('mask'), sheet=$('sheet'),
+      langList=$('langList'), sChange=$('sChange'), sLang=$('sLang'), sClose=$('sClose');
+  var cur='en-US';
+
+  // ---- 存储抽象（隐私模式/禁用时退化内存，本会话行为一致）----
+  var MEM={};
+  var LS=(function(){ try{ var k='__jzwt'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return localStorage; }catch(e){ return null; } })();
+  function sGet(k){ if(LS){ try{ return LS.getItem(k); }catch(e){} } return (k in MEM)?MEM[k]:null; }
+  function sSet(k,v){ if(LS){ try{ LS.setItem(k,v); return true; }catch(e){ return false; } } MEM[k]=v; return true; }
+  var SS=(function(){ try{ var k='__jzws'; sessionStorage.setItem(k,'1'); sessionStorage.removeItem(k); return sessionStorage; }catch(e){ return null; } })();
+  function ssGet(k){ if(SS){ try{ return SS.getItem(k); }catch(e){} } return null; }
+  function ssSet(k,v){ if(SS){ try{ SS.setItem(k,v); }catch(e){} } }
+
+  // ---- 语言 ----
+  function pickLocale(){
+    var s=sGet('jzw_lang'); if(s&&I18N[s]) return s;
+    var cands=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||'en'];
+    for(var i=0;i<cands.length;i++){ var c=cands[i]; if(!c) continue;
+      if(I18N[c]) return c;
+      var low=c.toLowerCase();
+      if(low.indexOf('zh')===0) return (low.indexOf('tw')>=0||low.indexOf('hk')>=0||low.indexOf('mo')>=0||low.indexOf('hant')>=0)?'zh-TW':'zh-CN';
+      if(low.indexOf('en')===0) return (low.indexOf('gb')>=0)?'en-GB':'en-US';
+      var base=low.split('-')[0];
+      if(base==='ru') return 'ru'; if(base==='uk') return 'uk'; if(base==='ar') return 'ar';
+    }
+    return 'en-US';
+  }
+  function applyLocale(code){
+    cur=code; var t=I18N[code];
+    document.documentElement.lang=code; document.documentElement.dir=t.rtl?'rtl':'ltr';
+    var ns=document.querySelectorAll('[data-i18n]');
+    for(var i=0;i<ns.length;i++){ var k=ns[i].getAttribute('data-i18n'); if(t[k]!=null) ns[i].textContent=t[k]; }
+    buildLangList();
+  }
+  function buildLangList(){
+    langList.innerHTML='';
+    for(var i=0;i<LANG_NAMES.length;i++){ (function(code,name){
+      var b=document.createElement('button');
+      b.className='lang-opt'+(code===cur?' active':''); b.textContent=name;
+      b.addEventListener('click', function(e){ e.stopPropagation(); sSet('jzw_lang',code); applyLocale(code); closeSettings(); });
+      langList.appendChild(b);
+    })(LANG_NAMES[i][0], LANG_NAMES[i][1]); }
+  }
+
+  // ---- 提示 / loading / toast（提示不自动消失，直到交互）----
+  function hideHint(){ hint.classList.remove('show'); }
+  function maybeHint(){
+    if(ssGet('jzw_hinted')) return; ssSet('jzw_hinted','1');
+    hint.classList.add('show');                 // 常驻·无 setTimeout
+    hot.classList.add('press');                 // 首次轻轻亮一下右下角(玻璃光)，让人看见可点处在哪
+    setTimeout(function(){ hot.classList.remove('press'); }, 2200);
+  }
+  function showLoading(b){ loading.classList.toggle('show', !!b); }
+  var toastTimer=null;
+  function toast(msg){ if(!msg) return; toastEl.textContent=msg; toastEl.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(function(){ toastEl.classList.remove('show'); }, 5000); }
+
+  // ---- 照片：守卫 + 降采样 + 分级持久化 ----
+  var MAX_UPLOAD=25*1024*1024, MAX_STORE=3.4*1024*1024;
+  function approxBytes(d){ var i=d.indexOf(','); return Math.floor((d.length-(i<0?0:i+1))*0.75); }
+  function encodeScaled(im,max,q){
+    var w=im.width,h=im.height,s=Math.min(1,max/Math.max(w,h)),cw=Math.max(1,Math.round(w*s)),ch=Math.max(1,Math.round(h*s));
+    try{ var cv=document.createElement('canvas'); cv.width=cw; cv.height=ch; cv.getContext('2d').drawImage(im,0,0,cw,ch); return cv.toDataURL('image/jpeg',q); }catch(e){ return im.src; }
+  }
+  function showImg(src){ img.src=src; img.style.animation='none'; img.offsetHeight; img.style.animation='';
+    start.style.display='none'; stage.classList.add('show'); maybeHint(); }
+  function setPhoto(dataUrl, persist){
+    showLoading(true); var im=new Image();
+    im.onload=function(){
+      var display=encodeScaled(im,1600,0.9); showLoading(false); showImg(display);
+      if(persist){ var store=display;
+        if(approxBytes(store)>MAX_STORE) store=encodeScaled(im,1100,0.78);
+        if(approxBytes(store)>MAX_STORE) store=encodeScaled(im,800,0.7);
+        if(approxBytes(store)>MAX_STORE || !sSet('jzw_photo',store)) toast(I18N[cur].not_saved);
+      }
+    };
+    im.onerror=function(){ showLoading(false); toast(I18N[cur].cant_open); };
+    im.src=dataUrl;
+  }
+  function readFile(f){
+    if(!f) return;
+    if(f.size && f.size>MAX_UPLOAD){ toast(I18N[cur].too_large); return; }
+    showLoading(true); var r=new FileReader();
+    r.onload=function(ev){ setPhoto(ev.target.result,true); };
+    r.onerror=function(){ showLoading(false); toast(I18N[cur].cant_open); };
+    r.readAsDataURL(f);
+  }
+
+  // ---- 设置面板（空状态也可开：语言逃生口须第一屏可达·有意如此·不自动消失）----
+  function openSettings(){ mask.classList.add('show'); sheet.classList.add('show'); hideHint(); }
+  function closeSettings(){ mask.classList.remove('show'); sheet.classList.remove('show'); langList.classList.remove('show'); }
+
+  // ---- 唯一可点区(右下角) + 玻璃按压 ----
+  // 部分 Android / 内置浏览器对 Pointer Events 不稳定，所以同时绑定 touch/click 兜底。
+  var lastHotOpen=0;
+  function eventPoint(e){
+    var t=(e.changedTouches&&e.changedTouches[0])||(e.touches&&e.touches[0])||e;
+    return {x:t.clientX, y:t.clientY};
+  }
+  function isInsideHot(e){
+    var p=eventPoint(e), r=hot.getBoundingClientRect(), pad=10;
+    return p.x>=r.left-pad && p.x<=r.right+pad && p.y>=r.top-pad && p.y<=r.bottom+pad;
+  }
+  function swallow(e){
+    if(!e) return;
+    if(e.cancelable) e.preventDefault();
+    e.stopPropagation();
+  }
+  function hotPress(e){ swallow(e); hot.classList.add('press'); hideHint(); }
+  function hotCancel(){ hot.classList.remove('press'); }
+  function openFromHot(e){
+    swallow(e);
+    var now=Date.now();
+    if(now-lastHotOpen<350) return;
+    lastHotOpen=now;
+    hot.classList.remove('press');
+    openSettings();
+  }
+  function hotRelease(e){
+    swallow(e);
+    if(isInsideHot(e)) openFromHot(e);
+    else hotCancel();
+  }
+  hot.addEventListener('pointerdown', hotPress);
+  hot.addEventListener('pointerup', hotRelease);
+  hot.addEventListener('pointercancel', hotCancel);
+  hot.addEventListener('touchstart', hotPress, {passive:false});
+  hot.addEventListener('touchend', hotRelease, {passive:false});
+  hot.addEventListener('touchcancel', hotCancel, {passive:false});
+  hot.addEventListener('mousedown', hotPress);
+  hot.addEventListener('mouseup', hotRelease);
+  hot.addEventListener('click', openFromHot);
+  hot.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  window.addEventListener('blur', function(){ hot.classList.remove('press'); });
+  // 照片本身：屏蔽右键/系统菜单，但不做任何打开动作（整屏只右下角可点）
+  stage.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+  // ---- 入口绑定 ----
+  $('uploadBtn').addEventListener('click', function(){ file.click(); });
+  var sb=$('sampleBtn'); if(sb&&SAMPLE) sb.addEventListener('click', function(){ setPhoto(SAMPLE,true); });
+  mask.addEventListener('click', closeSettings);
+  sChange.addEventListener('click', function(){ file.click(); });
+  sLang.addEventListener('click', function(){ langList.classList.toggle('show'); });
+  sClose.addEventListener('click', closeSettings);
+  file.addEventListener('change', function(e){ readFile(e.target.files[0]); closeSettings(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSettings(); });
+
+  // ---- 启动 ----
+  applyLocale(pickLocale());
+  (function(){ var saved=sGet('jzw_photo'); if(saved) showImg(saved); })();
+</script>
+</body>
+</html>
