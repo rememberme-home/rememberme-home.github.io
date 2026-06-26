@@ -7,7 +7,7 @@
 - 离线：随时打开，无需网络
 
 > 当前 = v1.0.5 纯净版（无内嵌名人照）· 早期原型 · `robots.txt` 已禁搜索引擎收录（链接仍可正常打开分享）。
-> 隐私政策见 `项目6_发布包/项目6_上架苹果包/隐私政策_PrivacyPolicy_*.md`。
+> 隐私政策：`privacy.html`。技术支持：`support.html`。支持邮箱：`magicvoice.team@outlook.com`。
 
 ---
 
